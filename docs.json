@@ -14,12 +14,6 @@
         "tab": "Documentation",
         "groups": [
           {
-            "group": "Get Started",
-            "pages": [
-              "introduction"
-            ]
-          },
-          {
             "group": "Concepts",
             "pages": [
               "concepts/what-is-cicd",

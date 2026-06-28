@@ -1,47 +1,69 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Introduction"
+description: "Welcome to PipelineCI - The API for automating your software delivery workflow."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+<Info>
+  PipelineCI is a portfolio project created to demonstrate API documentation engineering. It is not a live product - external links will not resolve.
+</Info>
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+PipelineCI is a CI/CD automation API that lets you programmatically trigger builds, monitor jobs, manage deployment environments, and receive real-time webhook notifications - all without touching a UI.
 
-## Prerequisites
+Whether you're building an internal developer portal, automating deployments from a script, or integrating CI/CD into your own platform, PipelineCI gives you full control over your software delivery pipeline.
 
-Before you begin, you must have:
+## What you can do
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
+<CardGroup cols={2}>
+  <Card title="Run Pipelines" icon="play" href="/api-reference/pipelines/trigger-pipeline">
+    Trigger pipeline runs programmatically against any branch or commit.
+  </Card>
 
-## Get started
+  <Card title="Monitor Jobs" icon="magnifying-glass" href="/api-reference/jobs/list-jobs">
+    Track the status of individual jobs and stream logs in real time.
+  </Card>
+
+  <Card title="Manage Environments" icon="server" href="/api-reference/environments/list-environments">
+    Create and manage the deployment targets your pipelines deploy to.
+  </Card>
+
+  <Card title="Receive Webhooks" icon="bell" href="/api-reference/webhooks/create-webhook">
+    Get notified instantly when pipeline and job events occur.
+  </Card>
+</CardGroup>
+
+## Before you start
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
-
-    ```bash
-    npm install your-package
-    ```
+  <Step title="Get your API key">
+    Sign in to your [PipelineCI dashboard](https://dashboard.pipelineci.dev) and navigate to **Settings → API Keys** to generate your key.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
-
-    ```bash
-    your-cli init
-    ```
+  <Step title="Read the authentication guide">
+    Learn how to include your API key in requests. See [Authentication](/concepts/authentication).
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+  <Step title="Make your first request">
+    Try listing your pipelines to confirm everything is working:
 
     ```bash
-    your-cli start
+    curl https://api.pipelineci.dev/v1/pipelines \
+      -H "X-API-Key: your_api_key_here"
     ```
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Base URL
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+All API requests are made to:
+
+```text
+https://api.pipelineci.dev/v1
+```
+
+A sandbox environment is also available for testing:
+
+```text
+https://sandbox.api.pipelineci.dev/v1
+```
+
+<Note>
+  Requests made to the sandbox environment do not trigger real deployments and will not affect your production infrastructure.
+</Note>
