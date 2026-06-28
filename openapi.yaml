@@ -1,0 +1,1417 @@
+openapi: "3.1.0"
+info:
+  title: PipelineCI API
+  description: |
+    The PipelineCI API lets you programmatically manage your CI/CD pipelines, jobs, 
+    environments, artifacts, and webhooks. Use it to trigger builds, monitor job status, 
+    manage deployment environments, and automate your entire software delivery workflow.
+  version: "1.0.0"
+  contact:
+    name: PipelineCI Support
+    url: https://pipelineci.dev/support
+    email: support@pipelineci.dev
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.pipelineci.dev/v1
+    description: Production server
+  - url: https://sandbox.api.pipelineci.dev/v1
+    description: Sandbox server (for testing)
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        All API requests must include your API key in the `X-API-Key` request header.
+        You can generate an API key from your PipelineCI dashboard under Settings > API Keys.
+
+        Example:
+        ```
+        X-API-Key: pci_live_xxxxxxxxxxxxxxxx
+        ```
+
+  schemas:
+    Pipeline:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the pipeline.
+          example: pipe_abc123
+        name:
+          type: string
+          description: Human-readable name of the pipeline.
+          example: Production Deploy
+        status:
+          type: string
+          enum: [pending, running, success, failed, cancelled]
+          description: Current status of the pipeline.
+          example: running
+        branch:
+          type: string
+          description: The git branch this pipeline is running against.
+          example: main
+        commit_sha:
+          type: string
+          description: The full SHA of the commit that triggered this pipeline.
+          example: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the pipeline was created.
+          example: "2024-03-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the pipeline was last updated.
+          example: "2024-03-15T10:35:00Z"
+      required:
+        - id
+        - name
+        - status
+        - branch
+        - created_at
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the job.
+          example: job_xyz789
+        pipeline_id:
+          type: string
+          description: The ID of the pipeline this job belongs to.
+          example: pipe_abc123
+        name:
+          type: string
+          description: Human-readable name of the job.
+          example: Run Tests
+        status:
+          type: string
+          enum: [pending, running, success, failed, cancelled, skipped]
+          description: Current status of the job.
+          example: success
+        stage:
+          type: string
+          description: The pipeline stage this job belongs to.
+          example: test
+        duration_ms:
+          type: integer
+          description: How long the job took to complete, in milliseconds.
+          example: 45230
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the job was created.
+          example: "2024-03-15T10:30:00Z"
+        finished_at:
+          type: string
+          format: date-time
+          description: Timestamp when the job finished. Null if still running.
+          example: "2024-03-15T10:31:00Z"
+      required:
+        - id
+        - pipeline_id
+        - name
+        - status
+        - stage
+        - created_at
+
+    Environment:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the environment.
+          example: env_prod001
+        name:
+          type: string
+          description: Human-readable name of the environment.
+          example: production
+        url:
+          type: string
+          description: The URL where this environment is deployed.
+          example: https://myapp.com
+        status:
+          type: string
+          enum: [active, inactive, deploying]
+          description: Current status of the environment.
+          example: active
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the environment was created.
+          example: "2024-03-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the environment was last updated.
+          example: "2024-03-15T10:35:00Z"
+      required:
+        - id
+        - name
+        - status
+        - created_at
+
+    Artifact:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the artifact.
+          example: art_def456
+        pipeline_id:
+          type: string
+          description: The ID of the pipeline that produced this artifact.
+          example: pipe_abc123
+        job_id:
+          type: string
+          description: The ID of the job that produced this artifact.
+          example: job_xyz789
+        name:
+          type: string
+          description: File name of the artifact.
+          example: build-output.zip
+        size_bytes:
+          type: integer
+          description: Size of the artifact in bytes.
+          example: 2048000
+        expires_at:
+          type: string
+          format: date-time
+          description: Timestamp when the artifact will be automatically deleted.
+          example: "2024-04-15T10:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the artifact was created.
+          example: "2024-03-15T10:30:00Z"
+      required:
+        - id
+        - pipeline_id
+        - job_id
+        - name
+        - size_bytes
+        - created_at
+
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the webhook.
+          example: wh_ghi012
+        url:
+          type: string
+          description: The endpoint URL that receives webhook events.
+          example: https://myapp.com/webhooks/pipelineci
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - pipeline.created
+              - pipeline.started
+              - pipeline.success
+              - pipeline.failed
+              - pipeline.cancelled
+              - job.started
+              - job.success
+              - job.failed
+          description: List of events this webhook is subscribed to.
+          example: [pipeline.success, pipeline.failed]
+        active:
+          type: boolean
+          description: Whether the webhook is currently active.
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the webhook was created.
+          example: "2024-03-15T10:30:00Z"
+      required:
+        - id
+        - url
+        - events
+        - active
+        - created_at
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: A machine-readable error code.
+              example: RESOURCE_NOT_FOUND
+            message:
+              type: string
+              description: A human-readable description of the error.
+              example: The requested pipeline could not be found.
+            details:
+              type: object
+              description: Additional context about the error, if available.
+          required:
+            - code
+            - message
+      required:
+        - error
+
+  responses:
+    UnauthorizedError:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Missing or invalid API key. Include your key in the X-API-Key header.
+
+    ForbiddenError:
+      description: The API key does not have permission to perform this action.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: FORBIDDEN
+              message: You do not have permission to perform this action.
+
+    NotFoundError:
+      description: The requested resource could not be found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: RESOURCE_NOT_FOUND
+              message: The requested resource could not be found.
+
+    ValidationError:
+      description: The request body contains invalid or missing fields.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Request validation failed.
+              details:
+                fields:
+                  - field: name
+                    message: name is required
+
+    RateLimitError:
+      description: Too many requests. You have exceeded the rate limit.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: RATE_LIMIT_EXCEEDED
+              message: Too many requests. Please wait before retrying.
+              details:
+                retry_after_seconds: 30
+
+    InternalServerError:
+      description: An unexpected error occurred on the server.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: INTERNAL_SERVER_ERROR
+              message: An unexpected error occurred. Please try again later.
+
+# ============================================================
+# PATHS
+# ============================================================
+
+paths:
+
+# ------------------------------------------------------------
+# PIPELINES
+# ------------------------------------------------------------
+
+  /pipelines:
+    get:
+      summary: List pipelines
+      description: |
+        Returns a paginated list of all pipelines in your account. 
+        You can filter by status or branch to narrow down results.
+        
+        This endpoint does not require authentication — useful for public dashboards.
+      operationId: listPipelines
+      tags:
+        - Pipelines
+      security: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter pipelines by their current status.
+          schema:
+            type: string
+            enum: [pending, running, success, failed, cancelled]
+          example: running
+        - name: branch
+          in: query
+          required: false
+          description: Filter pipelines by the git branch they are running against.
+          schema:
+            type: string
+          example: main
+        - name: limit
+          in: query
+          required: false
+          description: Number of pipelines to return per page. Defaults to 20, maximum 100.
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          example: 20
+        - name: page
+          in: query
+          required: false
+          description: Page number for pagination. Starts at 1.
+          schema:
+            type: integer
+            default: 1
+          example: 1
+      responses:
+        '200':
+          description: A paginated list of pipelines.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pipeline'
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        example: 42
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 20
+              example:
+                data:
+                  - id: pipe_abc123
+                    name: Production Deploy
+                    status: running
+                    branch: main
+                    commit_sha: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+                    created_at: "2024-03-15T10:30:00Z"
+                    updated_at: "2024-03-15T10:35:00Z"
+                  - id: pipe_def456
+                    name: Staging Deploy
+                    status: success
+                    branch: develop
+                    commit_sha: b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3
+                    created_at: "2024-03-15T09:00:00Z"
+                    updated_at: "2024-03-15T09:10:00Z"
+                meta:
+                  total: 42
+                  page: 1
+                  limit: 20
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create a pipeline
+      description: |
+        Creates a new pipeline definition. A pipeline defines the sequence of stages 
+        and jobs that run when triggered. Creating a pipeline does not run it — 
+        use the Trigger Pipeline endpoint to start a run.
+      operationId: createPipeline
+      tags:
+        - Pipelines
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: A human-readable name for the pipeline.
+                  example: Production Deploy
+                branch:
+                  type: string
+                  description: The default git branch this pipeline runs against.
+                  example: main
+                environment_id:
+                  type: string
+                  description: The ID of the environment to deploy to.
+                  example: env_prod001
+              required:
+                - name
+                - branch
+            example:
+              name: Production Deploy
+              branch: main
+              environment_id: env_prod001
+      responses:
+        '201':
+          description: Pipeline successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pipeline'
+              example:
+                id: pipe_abc123
+                name: Production Deploy
+                status: pending
+                branch: main
+                commit_sha: null
+                created_at: "2024-03-15T10:30:00Z"
+                updated_at: "2024-03-15T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /pipelines/{pipeline_id}/trigger:
+    post:
+      summary: Trigger a pipeline
+      description: |
+        Triggers an existing pipeline to run. You can optionally override the default 
+        branch or pass custom environment variables for this specific run.
+      operationId: triggerPipeline
+      tags:
+        - Pipelines
+      parameters:
+        - name: pipeline_id
+          in: path
+          required: true
+          description: The unique identifier of the pipeline to trigger.
+          schema:
+            type: string
+          example: pipe_abc123
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                branch:
+                  type: string
+                  description: Override the default branch for this run only.
+                  example: feature/new-login
+                variables:
+                  type: object
+                  description: Key-value pairs of environment variables to inject into this run.
+                  example:
+                    NODE_ENV: production
+                    DEPLOY_REGION: us-east-1
+            example:
+              branch: feature/new-login
+              variables:
+                NODE_ENV: production
+                DEPLOY_REGION: us-east-1
+      responses:
+        '200':
+          description: Pipeline successfully triggered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pipeline'
+              example:
+                id: pipe_abc123
+                name: Production Deploy
+                status: running
+                branch: feature/new-login
+                commit_sha: c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
+                created_at: "2024-03-15T10:30:00Z"
+                updated_at: "2024-03-15T10:36:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /pipelines/{pipeline_id}/cancel:
+    post:
+      summary: Cancel a pipeline
+      description: |
+        Cancels a pipeline that is currently pending or running. 
+        Jobs that have already completed will not be affected. 
+        This action cannot be undone — you will need to trigger a new run.
+      operationId: cancelPipeline
+      tags:
+        - Pipelines
+      parameters:
+        - name: pipeline_id
+          in: path
+          required: true
+          description: The unique identifier of the pipeline to cancel.
+          schema:
+            type: string
+          example: pipe_abc123
+      responses:
+        '200':
+          description: Pipeline successfully cancelled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pipeline'
+              example:
+                id: pipe_abc123
+                name: Production Deploy
+                status: cancelled
+                branch: main
+                commit_sha: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+                created_at: "2024-03-15T10:30:00Z"
+                updated_at: "2024-03-15T10:38:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+# ------------------------------------------------------------
+# JOBS
+# ------------------------------------------------------------
+
+  /pipelines/{pipeline_id}/jobs:
+    get:
+      summary: List jobs
+      description: |
+        Returns all jobs belonging to a specific pipeline run. 
+        Jobs represent individual units of work within a pipeline, 
+        such as running tests, building a Docker image, or deploying to an environment.
+      operationId: listJobs
+      tags:
+        - Jobs
+      parameters:
+        - name: pipeline_id
+          in: path
+          required: true
+          description: The unique identifier of the pipeline whose jobs you want to retrieve.
+          schema:
+            type: string
+          example: pipe_abc123
+        - name: status
+          in: query
+          required: false
+          description: Filter jobs by their current status.
+          schema:
+            type: string
+            enum: [pending, running, success, failed, cancelled, skipped]
+          example: failed
+        - name: stage
+          in: query
+          required: false
+          description: Filter jobs by the pipeline stage they belong to.
+          schema:
+            type: string
+          example: test
+      responses:
+        '200':
+          description: A list of jobs for the specified pipeline.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Job'
+              example:
+                data:
+                  - id: job_xyz789
+                    pipeline_id: pipe_abc123
+                    name: Run Unit Tests
+                    status: success
+                    stage: test
+                    duration_ms: 45230
+                    created_at: "2024-03-15T10:30:00Z"
+                    finished_at: "2024-03-15T10:31:00Z"
+                  - id: job_xyz790
+                    pipeline_id: pipe_abc123
+                    name: Build Docker Image
+                    status: running
+                    stage: build
+                    duration_ms: null
+                    created_at: "2024-03-15T10:31:00Z"
+                    finished_at: null
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /jobs/{job_id}:
+    get:
+      summary: Get a job
+      description: |
+        Returns detailed information about a specific job, including its current status, 
+        which stage it belongs to, and how long it took to complete.
+      operationId: getJob
+      tags:
+        - Jobs
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          description: The unique identifier of the job to retrieve.
+          schema:
+            type: string
+          example: job_xyz789
+      responses:
+        '200':
+          description: Job details successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+              example:
+                id: job_xyz789
+                pipeline_id: pipe_abc123
+                name: Run Unit Tests
+                status: success
+                stage: test
+                duration_ms: 45230
+                created_at: "2024-03-15T10:30:00Z"
+                finished_at: "2024-03-15T10:31:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /jobs/{job_id}/retry:
+    post:
+      summary: Retry a job
+      description: |
+        Retries a job that has failed or been cancelled. 
+        A new job run is created with the same configuration as the original. 
+        You can only retry jobs with a status of `failed` or `cancelled`.
+      operationId: retryJob
+      tags:
+        - Jobs
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          description: The unique identifier of the job to retry.
+          schema:
+            type: string
+          example: job_xyz789
+      responses:
+        '200':
+          description: Job successfully queued for retry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+              example:
+                id: job_xyz800
+                pipeline_id: pipe_abc123
+                name: Run Unit Tests
+                status: pending
+                stage: test
+                duration_ms: null
+                created_at: "2024-03-15T11:00:00Z"
+                finished_at: null
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /jobs/{job_id}/logs:
+    get:
+      summary: Get job logs
+      description: |
+        Returns the raw log output from a specific job. Useful for debugging failed jobs. 
+        Logs are returned as plain text. For long-running jobs, you can use the `offset` 
+        parameter to stream logs incrementally.
+      operationId: getJobLogs
+      tags:
+        - Jobs
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          description: The unique identifier of the job whose logs you want to retrieve.
+          schema:
+            type: string
+          example: job_xyz789
+        - name: offset
+          in: query
+          required: false
+          description: The byte offset to start reading logs from. Useful for streaming logs incrementally.
+          schema:
+            type: integer
+            default: 0
+          example: 0
+      responses:
+        '200':
+          description: Job logs successfully retrieved.
+          content:
+            text/plain:
+              example: |
+                [10:30:01] Starting job: Run Unit Tests
+                [10:30:02] Installing dependencies...
+                [10:30:15] Running test suite...
+                [10:30:45] ✓ 142 tests passed
+                [10:30:45] Job completed successfully.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+# ------------------------------------------------------------
+# ENVIRONMENTS
+# ------------------------------------------------------------
+
+  /environments:
+    get:
+      summary: List environments
+      description: |
+        Returns all deployment environments configured in your account. 
+        Environments represent the targets your pipelines deploy to, 
+        such as staging, production, or a feature preview environment.
+      operationId: listEnvironments
+      tags:
+        - Environments
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter environments by their current status.
+          schema:
+            type: string
+            enum: [active, inactive, deploying]
+          example: active
+      responses:
+        '200':
+          description: A list of environments.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Environment'
+              example:
+                data:
+                  - id: env_prod001
+                    name: production
+                    url: https://myapp.com
+                    status: active
+                    created_at: "2024-01-01T00:00:00Z"
+                    updated_at: "2024-03-15T10:00:00Z"
+                  - id: env_stg002
+                    name: staging
+                    url: https://staging.myapp.com
+                    status: active
+                    created_at: "2024-01-01T00:00:00Z"
+                    updated_at: "2024-03-14T08:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create an environment
+      description: |
+        Creates a new deployment environment. Once created, you can associate 
+        pipelines with the environment and deploy to it.
+      operationId: createEnvironment
+      tags:
+        - Environments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: A unique name for the environment.
+                  example: staging
+                url:
+                  type: string
+                  description: The URL where this environment is accessible.
+                  example: https://staging.myapp.com
+              required:
+                - name
+            example:
+              name: staging
+              url: https://staging.myapp.com
+      responses:
+        '201':
+          description: Environment successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Environment'
+              example:
+                id: env_stg002
+                name: staging
+                url: https://staging.myapp.com
+                status: inactive
+                created_at: "2024-03-15T10:30:00Z"
+                updated_at: "2024-03-15T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /environments/{environment_id}:
+    patch:
+      summary: Update an environment
+      description: |
+        Updates the name or URL of an existing environment. 
+        Only the fields you include in the request body will be updated — 
+        fields you omit will remain unchanged.
+      operationId: updateEnvironment
+      tags:
+        - Environments
+      parameters:
+        - name: environment_id
+          in: path
+          required: true
+          description: The unique identifier of the environment to update.
+          schema:
+            type: string
+          example: env_stg002
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: New name for the environment.
+                  example: staging-v2
+                url:
+                  type: string
+                  description: New URL for the environment.
+                  example: https://v2.staging.myapp.com
+            example:
+              name: staging-v2
+              url: https://v2.staging.myapp.com
+      responses:
+        '200':
+          description: Environment successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Environment'
+              example:
+                id: env_stg002
+                name: staging-v2
+                url: https://v2.staging.myapp.com
+                status: active
+                created_at: "2024-01-01T00:00:00Z"
+                updated_at: "2024-03-15T11:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete an environment
+      description: |
+        Permanently deletes an environment. This action cannot be undone. 
+        Pipelines associated with this environment will need to be reassigned 
+        before they can be triggered again.
+      operationId: deleteEnvironment
+      tags:
+        - Environments
+      parameters:
+        - name: environment_id
+          in: path
+          required: true
+          description: The unique identifier of the environment to delete.
+          schema:
+            type: string
+          example: env_stg002
+      responses:
+        '204':
+          description: Environment successfully deleted. No content returned.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+# ------------------------------------------------------------
+# ARTIFACTS
+# ------------------------------------------------------------
+
+  /pipelines/{pipeline_id}/artifacts:
+    get:
+      summary: List artifacts
+      description: |
+        Returns all artifacts produced by a specific pipeline run. 
+        Artifacts are files generated during a pipeline, such as 
+        build outputs, test reports, or compiled binaries.
+      operationId: listArtifacts
+      tags:
+        - Artifacts
+      parameters:
+        - name: pipeline_id
+          in: path
+          required: true
+          description: The unique identifier of the pipeline whose artifacts you want to list.
+          schema:
+            type: string
+          example: pipe_abc123
+      responses:
+        '200':
+          description: A list of artifacts for the specified pipeline.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Artifact'
+              example:
+                data:
+                  - id: art_def456
+                    pipeline_id: pipe_abc123
+                    job_id: job_xyz789
+                    name: build-output.zip
+                    size_bytes: 2048000
+                    expires_at: "2024-04-15T10:30:00Z"
+                    created_at: "2024-03-15T10:31:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Upload an artifact
+      description: |
+        Uploads a file as an artifact for a specific pipeline. 
+        Artifacts are stored for 30 days by default before being automatically deleted. 
+        Maximum file size is 500MB.
+      operationId: uploadArtifact
+      tags:
+        - Artifacts
+      parameters:
+        - name: pipeline_id
+          in: path
+          required: true
+          description: The unique identifier of the pipeline to attach the artifact to.
+          schema:
+            type: string
+          example: pipe_abc123
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload as an artifact.
+                job_id:
+                  type: string
+                  description: The ID of the job that produced this artifact.
+                  example: job_xyz789
+              required:
+                - file
+                - job_id
+      responses:
+        '201':
+          description: Artifact successfully uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artifact'
+              example:
+                id: art_def456
+                pipeline_id: pipe_abc123
+                job_id: job_xyz789
+                name: build-output.zip
+                size_bytes: 2048000
+                expires_at: "2024-04-15T10:30:00Z"
+                created_at: "2024-03-15T10:31:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /artifacts/{artifact_id}/download:
+    get:
+      summary: Download an artifact
+      description: |
+        Downloads an artifact file. The response is the raw file content 
+        with the appropriate `Content-Type` header. 
+        The download link expires after 1 hour.
+      operationId: downloadArtifact
+      tags:
+        - Artifacts
+      parameters:
+        - name: artifact_id
+          in: path
+          required: true
+          description: The unique identifier of the artifact to download.
+          schema:
+            type: string
+          example: art_def456
+      responses:
+        '200':
+          description: Artifact file successfully returned.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /artifacts/{artifact_id}:
+    delete:
+      summary: Delete an artifact
+      description: |
+        Permanently deletes an artifact before its scheduled expiry. 
+        This is useful for freeing up storage. This action cannot be undone.
+      operationId: deleteArtifact
+      tags:
+        - Artifacts
+      parameters:
+        - name: artifact_id
+          in: path
+          required: true
+          description: The unique identifier of the artifact to delete.
+          schema:
+            type: string
+          example: art_def456
+      responses:
+        '204':
+          description: Artifact successfully deleted. No content returned.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+# ------------------------------------------------------------
+# WEBHOOKS
+# ------------------------------------------------------------
+
+  /webhooks:
+    get:
+      summary: List webhooks
+      description: |
+        Returns all webhooks configured in your account. 
+        Webhooks allow you to receive real-time notifications when 
+        pipeline and job events occur.
+      operationId: listWebhooks
+      tags:
+        - Webhooks
+      responses:
+        '200':
+          description: A list of webhooks.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Webhook'
+              example:
+                data:
+                  - id: wh_ghi012
+                    url: https://myapp.com/webhooks/pipelineci
+                    events:
+                      - pipeline.success
+                      - pipeline.failed
+                    active: true
+                    created_at: "2024-03-15T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create a webhook
+      description: |
+        Creates a new webhook that listens for the events you specify. 
+        When a matching event occurs, PipelineCI sends a `POST` request 
+        to your endpoint with the event payload.
+      operationId: createWebhook
+      tags:
+        - Webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: The HTTPS endpoint that will receive webhook events.
+                  example: https://myapp.com/webhooks/pipelineci
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - pipeline.created
+                      - pipeline.started
+                      - pipeline.success
+                      - pipeline.failed
+                      - pipeline.cancelled
+                      - job.started
+                      - job.success
+                      - job.failed
+                  description: The list of events to subscribe to.
+                  example: [pipeline.success, pipeline.failed]
+              required:
+                - url
+                - events
+            example:
+              url: https://myapp.com/webhooks/pipelineci
+              events:
+                - pipeline.success
+                - pipeline.failed
+      responses:
+        '201':
+          description: Webhook successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+              example:
+                id: wh_ghi012
+                url: https://myapp.com/webhooks/pipelineci
+                events:
+                  - pipeline.success
+                  - pipeline.failed
+                active: true
+                created_at: "2024-03-15T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /webhooks/{webhook_id}:
+    patch:
+      summary: Update a webhook
+      description: |
+        Updates an existing webhook. You can change the endpoint URL, 
+        update the list of subscribed events, or toggle the webhook on and off. 
+        Only fields included in the request body will be updated.
+      operationId: updateWebhook
+      tags:
+        - Webhooks
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          description: The unique identifier of the webhook to update.
+          schema:
+            type: string
+          example: wh_ghi012
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: New endpoint URL for the webhook.
+                  example: https://myapp.com/webhooks/v2/pipelineci
+                events:
+                  type: array
+                  items:
+                    type: string
+                  description: Updated list of events to subscribe to.
+                  example: [pipeline.success, pipeline.failed, job.failed]
+                active:
+                  type: boolean
+                  description: Set to `false` to temporarily disable the webhook without deleting it.
+                  example: false
+            example:
+              active: false
+      responses:
+        '200':
+          description: Webhook successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+              example:
+                id: wh_ghi012
+                url: https://myapp.com/webhooks/pipelineci
+                events:
+                  - pipeline.success
+                  - pipeline.failed
+                active: false
+                created_at: "2024-03-15T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete a webhook
+      description: |
+        Permanently deletes a webhook. Once deleted, PipelineCI will stop 
+        sending events to that endpoint. This action cannot be undone.
+      operationId: deleteWebhook
+      tags:
+        - Webhooks
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          description: The unique identifier of the webhook to delete.
+          schema:
+            type: string
+          example: wh_ghi012
+      responses:
+        '204':
+          description: Webhook successfully deleted. No content returned.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
